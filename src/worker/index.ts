@@ -1,29 +1,26 @@
 import { Hono } from "hono";
-import { serveStatic } from "hono/cloudflare-workers";
 
-// 模板自带的 Env 类型
+// 官方模板自带类型，必须保留
 type Env = {
-  __STATIC_CONTENT: KVNamespace;
+	// 由 vite-plugin 自动注入
+	ASSETS: Fetcher;
 };
 
+// 初始化 Hono
 const app = new Hono<{ Bindings: Env }>();
 
 // ==============================================
-// 1. 【最高优先级】API 接口（写在最前面！）
+// 👇 【核心】API 写在最前面！！！（官方模板这里写反了）
 // ==============================================
-app.get("/api", (c) => c.json({ status: "ok", name: "Cloudflare" }));
-app.get("/api/", (c) => c.json({ status: "ok", name: "Cloudflare" }));
+app.get("/api/", (c) => {
+	return c.json({ name: "Cloudflare" });
+});
 
 // ==============================================
-// 2. 【最后】静态文件（React前端）
+// 👇 官方原版：最后处理前端页面（自动托管 React）
 // ==============================================
-// 👇 这里修复：必须传配置参数
-app.get(
-  "*",
-  serveStatic({
-    root: "",
-    manifest: {},
-  })
-);
+app.get("*", (c) => {
+	return c.env.ASSETS.fetch(c.req.raw);
+});
 
 export default app;
