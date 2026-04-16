@@ -17,6 +17,13 @@ app.get("/api/", (c) => c.json({ status: "ok", name: "Cloudflare" }));
 // ==============================================
 // 2. 【最后】静态文件（React前端）
 // ==============================================
-app.get("*", serveStatic());
+// 👇 这里修复：必须传配置参数
+app.get(
+  "*",
+  serveStatic({
+    root: "",
+    manifest: {},
+  })
+);
 
 export default app;
