@@ -1,25 +1,22 @@
 import { Hono } from "hono";
-import { serveStatic } from 'hono/cloudflare-workers'
+import { serveStatic } from "hono/cloudflare-workers";
 
-// 定义Env类型（模板自带，必须保留）
+// 模板自带的 Env 类型
 type Env = {
-  // 你的环境变量（模板默认）
-}
+  __STATIC_CONTENT: KVNamespace;
+};
 
-// 初始化Hono
-const app = new Hono<{ Bindings: Env }>()
-
-// ==============================================
-// 👇 第一步：先写所有 API 接口（优先级最高！）
-// ==============================================
-app.get("/api", (c) => c.json({ name: "Cloudflare API 正常运行！" }));
-app.get("/api/", (c) => c.json({ name: "Cloudflare API 正常运行！" }));
-app.post("/api/test", (c) => c.json({ msg: "POST接口正常" }));
+const app = new Hono<{ Bindings: Env }>();
 
 // ==============================================
-// 👇 第二步：最后才返回前端页面（除了/api都走这里）
+// 1. 【最高优先级】API 接口（写在最前面！）
 // ==============================================
-app.get("*", serveStatic({ root: './' }))
+app.get("/api", (c) => c.json({ status: "ok", name: "Cloudflare" }));
+app.get("/api/", (c) => c.json({ status: "ok", name: "Cloudflare" }));
 
-// 导出（模板默认）
-export default app
+// ==============================================
+// 2. 【最后】静态文件（React前端）
+// ==============================================
+app.get("*", serveStatic());
+
+export default app;
