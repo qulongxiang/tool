@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { IncomingForm } = require('formidable');
 
 const PORT = 8787;
 const DIST_DIR = path.join(__dirname, 'dist', 'client');
@@ -24,56 +25,39 @@ const PAGE_SIZES = {
     letter: { width: 612, height: 792 }          // 8.5in × 11in
 };
 
-// 解析multipart/form-data
+// 解析multipart/form-data (使用formidable)
 function parseFormData(req) {
     return new Promise((resolve, reject) => {
-        const chunks = [];
-        req.on('data', chunk => chunks.push(chunk));
-        req.on('end', () => {
-            const buffer = Buffer.concat(chunks);
-            const contentType = req.headers['content-type'];
-            const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
-            const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
+        const form = new IncomingForm({
+            uploadDir: '/tmp',
+            keepExtensions: true,
+            multiples: true
+        });
 
-            if (!boundary) {
-                reject(new Error('No boundary found'));
+        form.parse(req, (err, fields, files) => {
+            if (err) {
+                reject(err);
                 return;
             }
 
-            const parts = buffer.split(Buffer.from('--' + boundary));
-            const formData = {};
-            const files = {};
-
-            for (let i = 1; i < parts.length - 1; i++) {
-                const part = parts[i];
-                const headerEnd = part.indexOf('\r\n\r\n');
-                if (headerEnd === -1) continue;
-
-                const headers = part.slice(0, headerEnd).toString();
-                const data = part.slice(headerEnd + 4, part.length - 2);
-
-                const nameMatch = headers.match(/name="([^"]+)"/);
-                const filenameMatch = headers.match(/filename="([^"]+)"/);
-
-                if (nameMatch) {
-                    const name = nameMatch[1];
-                    if (filenameMatch) {
-                        const filename = filenameMatch[1];
-                        const tempPath = path.join('/tmp', `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${filename}`);
-                        fs.writeFileSync(tempPath, data);
-                        if (!files[name]) {
-                            files[name] = [];
-                        }
-                        files[name].push({ path: tempPath, filename });
-                    } else {
-                        formData[name] = data.toString();
-                    }
-                }
+            // 转换fields为普通对象
+            const normalizedFields = {};
+            for (const [key, value] of Object.entries(fields)) {
+                normalizedFields[key] = Array.isArray(value) ? value[0] : value;
             }
 
-            resolve({ fields: formData, files });
+            // 转换files格式
+            const normalizedFiles = {};
+            for (const [key, value] of Object.entries(files)) {
+                const fileArray = Array.isArray(value) ? value : [value];
+                normalizedFiles[key] = fileArray.map(f => ({
+                    path: f.filepath,
+                    filename: f.originalFilename || 'unknown'
+                }));
+            }
+
+            resolve({ fields: normalizedFields, files: normalizedFiles });
         });
-        req.on('error', reject);
     });
 }
 
