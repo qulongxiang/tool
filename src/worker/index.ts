@@ -7,95 +7,146 @@ type Env = {
 
 const app = new Hono<{ Bindings: Env }>();
 
+// A4和Letter纸张尺寸(单位: point)
+const PAGE_SIZES: Record<string, { width: number; height: number }> = {
+	a4: { width: 595.28, height: 841.89 },
+	letter: { width: 612, height: 792 }
+};
+
 // ==============================================
-// PDF合并API
+// PDF合并API - 多文件版本
 // ==============================================
 app.post('/api/merge-pdf', async (c) => {
 	try {
 		const formData = await c.req.formData();
-		const pdf1File = formData.get('pdf1') as File;
-		const pdf2File = formData.get('pdf2') as File;
-		const layout = formData.get('layout') as string || 'horizontal';
 
-		if (!pdf1File || !pdf2File) {
-			return c.json({ error: '请上传两个PDF文件' }, 400);
+		// 收集所有PDF文件
+		const pdfFiles: File[] = [];
+		let index = 0;
+		while (true) {
+			const file = formData.get(`pdf_${index}`);
+			if (!file || !(file instanceof File)) break;
+			pdfFiles.push(file);
+			index++;
 		}
 
-		// 读取PDF文件
-		const pdf1Bytes = await pdf1File.arrayBuffer();
-		const pdf2Bytes = await pdf2File.arrayBuffer();
+		if (pdfFiles.length === 0) {
+			return c.json({ error: '请上传至少一个PDF文件' }, 400);
+		}
 
-		// 加载PDF文档
-		const pdf1 = await PDFDocument.load(pdf1Bytes);
-		const pdf2 = await PDFDocument.load(pdf2Bytes);
+		// 获取配置
+		const filesPerPage = parseInt(formData.get('filesPerPage') as string || '2');
+		const pageSize = formData.get('pageSize') as string || 'a4';
+		const layout = formData.get('layout') as string || 'grid';
+		const orientation = formData.get('orientation') as string || 'portrait';
+
+		// 确定页面尺寸
+		let pageWidth: number | null = null;
+		let pageHeight: number | null = null;
+
+		if (pageSize !== 'auto') {
+			const size = PAGE_SIZES[pageSize] || PAGE_SIZES.a4;
+			pageWidth = size.width;
+			pageHeight = size.height;
+
+			if (orientation === 'landscape') {
+				[pageWidth, pageHeight] = [pageHeight, pageWidth];
+			}
+		}
 
 		// 创建新的PDF文档
 		const mergedPdf = await PDFDocument.create();
 
-		// 获取两个PDF的第一页尺寸
-		const pdf1Pages = pdf1.getPages();
-		const pdf2Pages = pdf2.getPages();
-
-		if (pdf1Pages.length === 0 || pdf2Pages.length === 0) {
-			return c.json({ error: 'PDF文件必须至少有一页' }, 400);
+		// 按每页数量分组
+		const groups: File[][] = [];
+		for (let i = 0; i < pdfFiles.length; i += filesPerPage) {
+			groups.push(pdfFiles.slice(i, i + filesPerPage));
 		}
 
-		const page1 = pdf1Pages[0];
-		const page2 = pdf2Pages[0];
+		for (const group of groups) {
+			// 加载组内所有PDF
+			const pdfPages: { pdf: PDFDocument; page: any; bytes: ArrayBuffer }[] = [];
 
-		const page1Width = page1.getWidth();
-		const page1Height = page1.getHeight();
-		const page2Width = page2.getWidth();
-		const page2Height = page2.getHeight();
+			for (const file of group) {
+				const bytes = await file.arrayBuffer();
+				const pdf = await PDFDocument.load(bytes);
+				const pages = pdf.getPages();
+				if (pages.length > 0) {
+					pdfPages.push({ pdf, page: pages[0], bytes });
+				}
+			}
 
-		// 根据布局方式计算新页面尺寸
-		let newPageWidth: number, newPageHeight: number;
+			if (pdfPages.length === 0) continue;
 
-		if (layout === 'horizontal') {
-			// 水平并排
-			newPageWidth = page1Width + page2Width;
-			newPageHeight = Math.max(page1Height, page2Height);
-		} else {
-			// 垂直堆叠
-			newPageWidth = Math.max(page1Width, page2Width);
-			newPageHeight = page1Height + page2Height;
-		}
+			// 计算布局行列数
+			let cols: number, rows: number;
+			if (layout === 'horizontal') {
+				cols = pdfPages.length;
+				rows = 1;
+			} else if (layout === 'vertical') {
+				cols = 1;
+				rows = pdfPages.length;
+			} else {
+				// 网格布局
+				cols = Math.ceil(Math.sqrt(pdfPages.length));
+				rows = Math.ceil(pdfPages.length / cols);
+			}
 
-		// 嵌入页面
-		const [embeddedPage1] = await mergedPdf.embedPdf(pdf1Bytes, [0]);
-		const [embeddedPage2] = await mergedPdf.embedPdf(pdf2Bytes, [0]);
+			// 确定最终页面尺寸
+			let finalPageWidth = pageWidth;
+			let finalPageHeight = pageHeight;
 
-		// 创建新页面
-		const newPage = mergedPdf.addPage([newPageWidth, newPageHeight]);
+			if (pageSize === 'auto') {
+				if (layout === 'horizontal') {
+					finalPageWidth = pdfPages.reduce((sum, p) => sum + p.page.getWidth(), 0);
+					finalPageHeight = Math.max(...pdfPages.map(p => p.page.getHeight()));
+				} else if (layout === 'vertical') {
+					finalPageWidth = Math.max(...pdfPages.map(p => p.page.getWidth()));
+					finalPageHeight = pdfPages.reduce((sum, p) => sum + p.page.getHeight(), 0);
+				} else {
+					const maxWidth = Math.max(...pdfPages.map(p => p.page.getWidth()));
+					const maxHeight = Math.max(...pdfPages.map(p => p.page.getHeight()));
+					finalPageWidth = maxWidth * cols;
+					finalPageHeight = maxHeight * rows;
+				}
+			}
 
-		if (layout === 'horizontal') {
-			// 水平并排 - 左右放置
-			newPage.drawPage(embeddedPage1, {
-				x: 0,
-				y: newPageHeight - page1Height,
-				width: page1Width,
-				height: page1Height
-			});
-			newPage.drawPage(embeddedPage2, {
-				x: page1Width,
-				y: newPageHeight - page2Height,
-				width: page2Width,
-				height: page2Height
-			});
-		} else {
-			// 垂直堆叠 - 上下放置
-			newPage.drawPage(embeddedPage1, {
-				x: 0,
-				y: page2Height,
-				width: page1Width,
-				height: page1Height
-			});
-			newPage.drawPage(embeddedPage2, {
-				x: 0,
-				y: 0,
-				width: page2Width,
-				height: page2Height
-			});
+			// 创建新页面
+			const newPage = mergedPdf.addPage([finalPageWidth!, finalPageHeight!]);
+
+			// 嵌入并绘制每个PDF
+			for (let i = 0; i < pdfPages.length; i++) {
+				const { page, bytes } = pdfPages[i];
+				const [embeddedPage] = await mergedPdf.embedPdf(bytes, [0]);
+
+				const col = i % cols;
+				const row = Math.floor(i / cols);
+
+				const cellWidth = finalPageWidth! / cols;
+				const cellHeight = finalPageHeight! / rows;
+
+				const sourceWidth = page.getWidth();
+				const sourceHeight = page.getHeight();
+
+				// 计算缩放比例
+				const scaleX = cellWidth / sourceWidth;
+				const scaleY = cellHeight / sourceHeight;
+				const scale = Math.min(scaleX, scaleY);
+
+				const scaledWidth = sourceWidth * scale;
+				const scaledHeight = sourceHeight * scale;
+
+				// 居中放置
+				const x = col * cellWidth + (cellWidth - scaledWidth) / 2;
+				const y = finalPageHeight! - (row + 1) * cellHeight + (cellHeight - scaledHeight) / 2;
+
+				newPage.drawPage(embeddedPage, {
+					x,
+					y,
+					width: scaledWidth,
+					height: scaledHeight
+				});
+			}
 		}
 
 		// 保存PDF
