@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联系我们 - Linux Tool</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <header class="navbar">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">&#9881;</span>
+                Linux Tool
+            </a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">首页</a></li>
+                    <li><a href="about.html">关于我们</a></li>
+                    <li><a href="contact.html" class="active">联系我们</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero 区域 -->
+    <section class="page-hero">
+        <div class="container">
+            <h1>联系我们</h1>
+            <p>我们随时为您提供帮助</p>
+        </div>
+    </section>
+
+    <!-- 联系方式 -->
+    <section class="contact-methods">
+        <div class="container">
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <div class="contact-icon">&#9993;</div>
+                    <h3>电子邮件</h3>
+                    <p>发送邮件至我们的支持团队</p>
+                    <a href="mailto:support@linuxtool.com" class="contact-link">support@linuxtool.com</a>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">&#128172;</div>
+                    <h3>在线聊天</h3>
+                    <p>工作日 9:00-18:00 实时响应</p>
+                    <a href="#" class="contact-link">开始聊天</a>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">&#128187;</div>
+                    <h3>GitHub</h3>
+                    <p>提交 Issue 或参与讨论</p>
+                    <a href="#" class="contact-link">github.com/linux-tool</a>
+                </div>
+                <div class="contact-card">
+                    <div class="contact-icon">&#128241;</div>
+                    <h3>社区论坛</h3>
+                    <p>与其他开发者交流经验</p>
+                    <a href="#" class="contact-link">访问论坛</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 联系表单 -->
+    <section class="contact-form-section">
+        <div class="container">
+            <div class="form-container">
+                <div class="form-header">
+                    <h2>发送消息</h2>
+                    <p>填写以下表单，我们会尽快回复您</p>
+                </div>
+                <form class="contact-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="name">姓名 *</label>
+                            <input type="text" id="name" name="name" placeholder="请输入您的姓名" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">邮箱 *</label>
+                            <input type="email" id="email" name="email" placeholder="example@email.com" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="subject">主题</label>
+                        <select id="subject" name="subject">
+                            <option value="">请选择主题</option>
+                            <option value="general">一般咨询</option>
+                            <option value="support">技术支持</option>
+                            <option value="feature">功能建议</option>
+                            <option value="bug">问题反馈</option>
+                            <option value="business">商务合作</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">消息内容 *</label>
+                        <textarea id="message" name="message" rows="6" placeholder="请详细描述您的问题或建议..." required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">发送消息</button>
+                        <p class="form-note">我们将在 24 小时内回复您的消息</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ 常见问题 -->
+    <section class="faq">
+        <div class="container">
+            <h2>常见问题</h2>
+            <p class="section-subtitle">快速找到您需要的答案</p>
+            <div class="faq-list">
+                <div class="faq-item">
+                    <h3>如何开始使用 Linux Tool？</h3>
+                    <p>您可以通过 npm 安装 Linux Tool，然后运行初始化命令即可快速开始。查看我们的<a href="#">快速入门指南</a>了解更多详情。</p>
+                </div>
+                <div class="faq-item">
+                    <h3>Linux Tool 是否免费？</h3>
+                    <p>是的，Linux Tool 是开源免费的工具。我们也提供企业版服务，包含更多高级功能和专业支持。</p>
+                </div>
+                <div class="faq-item">
+                    <h3>如何贡献代码？</h3>
+                    <p>欢迎您在 GitHub 上 Fork 项目，提交 Pull Request。请先阅读我们的<a href="#">贡献指南</a>了解详细流程。</p>
+                </div>
+                <div class="faq-item">
+                    <h3>遇到技术问题怎么办？</h3>
+                    <p>您可以在 GitHub Issues 中搜索类似问题，或者提交新的 Issue。我们的社区和技术团队会尽快为您解答。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA 区域 -->
+    <section class="cta">
+        <div class="container">
+            <h2>准备好开始了吗？</h2>
+            <p>立即体验 Linux Tool 的强大功能</p>
+            <a href="index.html#quick-start" class="btn btn-primary btn-large">快速开始</a>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Linux Tool</h3>
+                    <p>为开发者打造的高效 Linux 开发工具集</p>
+                </div>
+                <div class="footer-section">
+                    <h4>产品</h4>
+                    <ul>
+                        <li><a href="index.html#features">功能特性</a></li>
+                        <li><a href="#">定价方案</a></li>
+                        <li><a href="#">更新日志</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>资源</h4>
+                    <ul>
+                        <li><a href="#">文档中心</a></li>
+                        <li><a href="#">API 参考</a></li>
+                        <li><a href="#">社区论坛</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>关于</h4>
+                    <ul>
+                        <li><a href="about.html">关于我们</a></li>
+                        <li><a href="contact.html">联系我们</a></li>
+                        <li><a href="#">隐私政策</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 Linux Tool Project. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

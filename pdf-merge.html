@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF合并工具 - Linux Tool</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <header class="navbar">
+        <div class="container">
+            <a href="index.html" class="logo">
+                <span class="logo-icon">&#9881;</span>
+                Linux Tool
+            </a>
+            <nav>
+                <ul>
+                    <li><a href="index.html">首页</a></li>
+                    <li><a href="about.html">关于我们</a></li>
+                    <li><a href="contact.html">联系我们</a></li>
+                    <li><a href="pdf-merge.html" class="active">PDF工具</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero 区域 -->
+    <section class="page-hero">
+        <div class="container">
+            <h1>PDF合并工具</h1>
+            <p>轻松合并两个PDF文件为一页</p>
+        </div>
+    </section>
+
+    <!-- 工具主区域 -->
+    <section class="tool-section">
+        <div class="container">
+            <div class="tool-container">
+                <div class="tool-header">
+                    <h2>上传PDF文件</h2>
+                    <p>选择两个PDF文件,我们将把它们合并成一页</p>
+                </div>
+
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-boxes">
+                        <div class="upload-box" id="uploadBox1">
+                            <div class="upload-icon">&#128196;</div>
+                            <h3>PDF文件 1</h3>
+                            <p class="upload-hint">点击或拖拽上传</p>
+                            <input type="file" id="pdfFile1" accept=".pdf" hidden>
+                            <button class="btn btn-upload" onclick="document.getElementById('pdfFile1').click()">
+                                选择文件
+                            </button>
+                            <div class="file-info" id="fileInfo1" style="display: none;">
+                                <span class="file-name"></span>
+                                <button class="btn-remove" onclick="removeFile(1)">&times;</button>
+                            </div>
+                        </div>
+
+                        <div class="upload-plus">+</div>
+
+                        <div class="upload-box" id="uploadBox2">
+                            <div class="upload-icon">&#128196;</div>
+                            <h3>PDF文件 2</h3>
+                            <p class="upload-hint">点击或拖拽上传</p>
+                            <input type="file" id="pdfFile2" accept=".pdf" hidden>
+                            <button class="btn btn-upload" onclick="document.getElementById('pdfFile2').click()">
+                                选择文件
+                            </button>
+                            <div class="file-info" id="fileInfo2" style="display: none;">
+                                <span class="file-name"></span>
+                                <button class="btn-remove" onclick="removeFile(2)">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tool-options">
+                    <h3>合并选项</h3>
+                    <div class="option-group">
+                        <label>
+                            <input type="radio" name="layout" value="horizontal" checked>
+                            水平并排 (左右)
+                        </label>
+                        <label>
+                            <input type="radio" name="layout" value="vertical">
+                            垂直堆叠 (上下)
+                        </label>
+                    </div>
+                </div>
+
+                <div class="tool-actions">
+                    <button class="btn btn-primary btn-large" id="mergeBtn" disabled onclick="mergePDFs()">
+                        合并PDF
+                    </button>
+                    <p class="tool-tip">请先上传两个PDF文件</p>
+                </div>
+
+                <div class="result-area" id="resultArea" style="display: none;">
+                    <div class="result-success">
+                        <div class="success-icon">&#10004;</div>
+                        <h3>合并成功!</h3>
+                        <p>您的PDF文件已合并完成</p>
+                        <button class="btn btn-primary btn-large" onclick="downloadMergedPDF()">
+                            下载合并后的PDF
+                        </button>
+                        <button class="btn btn-secondary" onclick="resetTool()">
+                            重新合并
+                        </button>
+                    </div>
+                </div>
+
+                <div class="error-area" id="errorArea" style="display: none;">
+                    <div class="error-message">
+                        <div class="error-icon">&#9888;</div>
+                        <h3>处理失败</h3>
+                        <p id="errorMessage"></p>
+                        <button class="btn btn-secondary" onclick="hideError()">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 使用说明 -->
+    <section class="instructions">
+        <div class="container">
+            <h2>使用说明</h2>
+            <div class="instruction-grid">
+                <div class="instruction-card">
+                    <div class="instruction-number">1</div>
+                    <h3>上传PDF</h3>
+                    <p>点击上传按钮或拖拽两个PDF文件到指定区域</p>
+                </div>
+                <div class="instruction-card">
+                    <div class="instruction-number">2</div>
+                    <h3>选择布局</h3>
+                    <p>选择水平并排或垂直堆叠的合并方式</p>
+                </div>
+                <div class="instruction-card">
+                    <div class="instruction-number">3</div>
+                    <h3>合并下载</h3>
+                    <p>点击合并按钮,等待处理后下载结果</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Linux Tool</h3>
+                    <p>为开发者打造的高效 Linux 开发工具集</p>
+                </div>
+                <div class="footer-section">
+                    <h4>产品</h4>
+                    <ul>
+                        <li><a href="index.html#features">功能特性</a></li>
+                        <li><a href="pdf-merge.html">PDF工具</a></li>
+                        <li><a href="#">更新日志</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>资源</h4>
+                    <ul>
+                        <li><a href="#">文档中心</a></li>
+                        <li><a href="#">API 参考</a></li>
+                        <li><a href="#">社区论坛</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>关于</h4>
+                    <ul>
+                        <li><a href="about.html">关于我们</a></li>
+                        <li><a href="contact.html">联系我们</a></li>
+                        <li><a href="#">隐私政策</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 Linux Tool Project. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/pdf-merge.js"></script>
+</body>
+</html>
