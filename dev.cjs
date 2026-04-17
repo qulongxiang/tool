@@ -4,7 +4,7 @@ const path = require('path');
 const { IncomingForm } = require('formidable');
 
 const PORT = 8787;
-const DIST_DIR = path.join(__dirname, 'dist', 'client');
+const DIST_DIR = path.join(__dirname, 'public');
 
 const mimeTypes = {
     '.html': 'text/html',
