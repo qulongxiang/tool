@@ -116,6 +116,11 @@ async function mergePDFs() {
         return;
     }
 
+    // 清除上一次的结果和错误
+    mergedPDFBlob = null;
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('errorArea').style.display = 'none';
+
     const mergeBtn = document.getElementById('mergeBtn');
     const layout = document.querySelector('input[name="layout"]:checked').value;
 

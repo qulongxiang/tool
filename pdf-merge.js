@@ -116,6 +116,11 @@ async function mergePDFs() {
         return;
     }
 
+    // 清除上一次的结果和错误
+    mergedPDFBlob = null;
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('errorArea').style.display = 'none';
+
     const mergeBtn = document.getElementById('mergeBtn');
     const layout = document.querySelector('input[name="layout"]:checked').value;
 
@@ -134,9 +139,17 @@ async function mergePDFs() {
             body: formData
         });
 
+        // 检查响应类型
+        const contentType = response.headers.get('content-type');
+        
+        if (!contentType || !contentType.includes('application/pdf')) {
+            // 如果不是PDF响应,可能是错误信息
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || data.error || '合并失败,请检查文件格式');
+        }
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || '合并失败');
+            throw new Error('合并失败: HTTP ' + response.status);
         }
 
         mergedPDFBlob = await response.blob();
@@ -147,7 +160,10 @@ async function mergePDFs() {
 
     } catch (error) {
         console.error('Merge error:', error);
-        showError(error.message || '合并失败,请重试');
+        const message = error.message.includes('Failed to fetch') 
+            ? '无法连接到服务器,请确保服务正在运行'
+            : error.message || '合并失败,请重试';
+        showError(message);
     } finally {
         mergeBtn.disabled = false;
         mergeBtn.textContent = '合并PDF';
