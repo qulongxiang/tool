@@ -216,6 +216,9 @@ const server = http.createServer(async (req, res) => {
         try {
             const { fields, files } = await parseFormData(req);
             
+            console.log('Received fields:', Object.keys(fields));
+            console.log('Received files:', Object.keys(files));
+            
             // 收集所有PDF文件路径
             const pdfFiles = [];
             let index = 0;
@@ -223,6 +226,8 @@ const server = http.createServer(async (req, res) => {
                 pdfFiles.push(files[`pdf_${index}`][0]);
                 index++;
             }
+            
+            console.log(`Total PDF files collected: ${pdfFiles.length}`);
 
             if (pdfFiles.length === 0) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
