@@ -1,11 +1,9 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { spawn } = require('child_process');
 
 const PORT = 8787;
 const DIST_DIR = path.join(__dirname, 'dist', 'client');
-const WORKER_DIR = path.join(__dirname, 'dist', 'tool');
 
 const mimeTypes = {
     '.html': 'text/html',
@@ -20,78 +18,11 @@ const mimeTypes = {
     '.ico': 'image/x-icon'
 };
 
-// 简单的PDF合并处理(使用pdf-lib)
-async function mergePDFs(pdf1Path, pdf2Path, layout) {
-    const { PDFDocument } = require('pdf-lib');
-
-    const pdf1Bytes = fs.readFileSync(pdf1Path);
-    const pdf2Bytes = fs.readFileSync(pdf2Path);
-
-    const pdf1 = await PDFDocument.load(pdf1Bytes);
-    const pdf2 = await PDFDocument.load(pdf2Bytes);
-
-    const mergedPdf = await PDFDocument.create();
-
-    const pdf1Pages = pdf1.getPages();
-    const pdf2Pages = pdf2.getPages();
-
-    if (pdf1Pages.length === 0 || pdf2Pages.length === 0) {
-        throw new Error('PDF文件必须至少有一页');
-    }
-
-    const page1 = pdf1Pages[0];
-    const page2 = pdf2Pages[0];
-
-    const page1Width = page1.getWidth();
-    const page1Height = page1.getHeight();
-    const page2Width = page2.getWidth();
-    const page2Height = page2.getHeight();
-
-    let newPageWidth, newPageHeight;
-
-    if (layout === 'horizontal') {
-        newPageWidth = page1Width + page2Width;
-        newPageHeight = Math.max(page1Height, page2Height);
-    } else {
-        newPageWidth = Math.max(page1Width, page2Width);
-        newPageHeight = page1Height + page2Height;
-    }
-
-    const [embeddedPage1] = await mergedPdf.embedPdf(pdf1Bytes, [0]);
-    const [embeddedPage2] = await mergedPdf.embedPdf(pdf2Bytes, [0]);
-
-    const newPage = mergedPdf.addPage([newPageWidth, newPageHeight]);
-
-    if (layout === 'horizontal') {
-        newPage.drawPage(embeddedPage1, {
-            x: 0,
-            y: newPageHeight - page1Height,
-            width: page1Width,
-            height: page1Height
-        });
-        newPage.drawPage(embeddedPage2, {
-            x: page1Width,
-            y: newPageHeight - page2Height,
-            width: page2Width,
-            height: page2Height
-        });
-    } else {
-        newPage.drawPage(embeddedPage1, {
-            x: 0,
-            y: page2Height,
-            width: page1Width,
-            height: page1Height
-        });
-        newPage.drawPage(embeddedPage2, {
-            x: 0,
-            y: 0,
-            width: page2Width,
-            height: page2Height
-        });
-    }
-
-    return await mergedPdf.save();
-}
+// A4和Letter纸张尺寸(单位: point, 1 point = 1/72 inch)
+const PAGE_SIZES = {
+    a4: { width: 595.28, height: 841.89 },      // 210mm × 297mm
+    letter: { width: 612, height: 792 }          // 8.5in × 11in
+};
 
 // 解析multipart/form-data
 function parseFormData(req) {
@@ -101,7 +32,8 @@ function parseFormData(req) {
         req.on('end', () => {
             const buffer = Buffer.concat(chunks);
             const contentType = req.headers['content-type'];
-            const boundary = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.[1] || contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i)?.[2];
+            const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
+            const boundary = boundaryMatch ? (boundaryMatch[1] || boundaryMatch[2]) : null;
 
             if (!boundary) {
                 reject(new Error('No boundary found'));
@@ -126,13 +58,14 @@ function parseFormData(req) {
                 if (nameMatch) {
                     const name = nameMatch[1];
                     if (filenameMatch) {
-                        // 这是文件
                         const filename = filenameMatch[1];
-                        const tempPath = path.join('/tmp', `upload_${Date.now()}_${filename}`);
+                        const tempPath = path.join('/tmp', `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${filename}`);
                         fs.writeFileSync(tempPath, data);
-                        files[name] = { path: tempPath, filename };
+                        if (!files[name]) {
+                            files[name] = [];
+                        }
+                        files[name].push({ path: tempPath, filename });
                     } else {
-                        // 这是普通字段
                         formData[name] = data.toString();
                     }
                 }
@@ -144,31 +77,178 @@ function parseFormData(req) {
     });
 }
 
+// 多文件PDF合并
+async function mergeMultiplePDFs(filePaths, config) {
+    const { PDFDocument } = require('pdf-lib');
+    
+    const { filesPerPage, pageSize, layout, orientation } = config;
+    
+    // 获取页面尺寸
+    let pageWidth, pageHeight;
+    if (pageSize === 'auto') {
+        pageWidth = null;
+        pageHeight = null;
+    } else {
+        const size = PAGE_SIZES[pageSize] || PAGE_SIZES.a4;
+        pageWidth = size.width;
+        pageHeight = size.height;
+        
+        // 处理方向
+        if (orientation === 'landscape') {
+            [pageWidth, pageHeight] = [pageHeight, pageWidth];
+        }
+    }
+    
+    const mergedPdf = await PDFDocument.create();
+    
+    // 按每页数量分组
+    const groups = [];
+    for (let i = 0; i < filePaths.length; i += filesPerPage) {
+        groups.push(filePaths.slice(i, i + filesPerPage));
+    }
+    
+    for (const group of groups) {
+        // 加载组内所有PDF
+        const pdfs = [];
+        for (const filePath of group) {
+            const bytes = fs.readFileSync(filePath);
+            const pdf = await PDFDocument.load(bytes);
+            const pages = pdf.getPages();
+            if (pages.length > 0) {
+                pdfs.push({ pdf, page: pages[0] });
+            }
+        }
+        
+        if (pdfs.length === 0) continue;
+        
+        // 计算布局
+        let cols, rows;
+        if (layout === 'horizontal') {
+            cols = pdfs.length;
+            rows = 1;
+        } else if (layout === 'vertical') {
+            cols = 1;
+            rows = pdfs.length;
+        } else {
+            // 网格布局 - 计算最佳行列数
+            cols = Math.ceil(Math.sqrt(pdfs.length));
+            rows = Math.ceil(pdfs.length / cols);
+        }
+        
+        // 确定页面尺寸
+        let finalPageWidth = pageWidth;
+        let finalPageHeight = pageHeight;
+        
+        if (pageSize === 'auto') {
+            // 自动模式:根据内容计算
+            if (layout === 'horizontal') {
+                finalPageWidth = pdfs.reduce((sum, p) => sum + p.page.getWidth(), 0);
+                finalPageHeight = Math.max(...pdfs.map(p => p.page.getHeight()));
+            } else if (layout === 'vertical') {
+                finalPageWidth = Math.max(...pdfs.map(p => p.page.getWidth()));
+                finalPageHeight = pdfs.reduce((sum, p) => sum + p.page.getHeight(), 0);
+            } else {
+                const maxWidth = Math.max(...pdfs.map(p => p.page.getWidth()));
+                const maxHeight = Math.max(...pdfs.map(p => p.page.getHeight()));
+                finalPageWidth = maxWidth * cols;
+                finalPageHeight = maxHeight * rows;
+            }
+        }
+        
+        // 创建新页面
+        const newPage = mergedPdf.addPage([finalPageWidth, finalPageHeight]);
+        
+        // 嵌入并绘制每个PDF
+        for (let i = 0; i < pdfs.length; i++) {
+            const { pdf, page } = pdfs[i];
+            const pdfBytes = fs.readFileSync(group[i]);
+            const [embeddedPage] = await mergedPdf.embedPdf(pdfBytes, [0]);
+            
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            
+            const cellWidth = finalPageWidth / cols;
+            const cellHeight = finalPageHeight / rows;
+            
+            const sourceWidth = page.getWidth();
+            const sourceHeight = page.getHeight();
+            
+            // 计算缩放比例以保持宽高比
+            const scaleX = cellWidth / sourceWidth;
+            const scaleY = cellHeight / sourceHeight;
+            const scale = Math.min(scaleX, scaleY);
+            
+            const scaledWidth = sourceWidth * scale;
+            const scaledHeight = sourceHeight * scale;
+            
+            // 居中放置
+            const x = col * cellWidth + (cellWidth - scaledWidth) / 2;
+            const y = finalPageHeight - (row + 1) * cellHeight + (cellHeight - scaledHeight) / 2;
+            
+            newPage.drawPage(embeddedPage, {
+                x,
+                y,
+                width: scaledWidth,
+                height: scaledHeight
+            });
+        }
+    }
+    
+    return await mergedPdf.save();
+}
+
 const server = http.createServer(async (req, res) => {
     console.log(`${req.method} ${req.url}`);
+
+    // 设置CORS头
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+    }
 
     // 处理PDF合并API
     if (req.url === '/api/merge-pdf' && req.method === 'POST') {
         try {
             const { fields, files } = await parseFormData(req);
+            
+            // 收集所有PDF文件路径
+            const pdfFiles = [];
+            let index = 0;
+            while (files[`pdf_${index}`]) {
+                pdfFiles.push(files[`pdf_${index}`][0]);
+                index++;
+            }
 
-            if (!files.pdf1 || !files.pdf2) {
+            if (pdfFiles.length === 0) {
                 res.writeHead(400, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: '请上传两个PDF文件' }));
+                res.end(JSON.stringify({ error: '请上传至少一个PDF文件' }));
                 return;
             }
 
-            const layout = fields.layout || 'vertical';
-            const mergedBytes = await mergePDFs(files.pdf1.path, files.pdf2.path, layout);
+            const config = {
+                filesPerPage: parseInt(fields.filesPerPage) || 2,
+                pageSize: fields.pageSize || 'a4',
+                layout: fields.layout || 'grid',
+                orientation: fields.orientation || 'portrait'
+            };
+
+            const mergedBytes = await mergeMultiplePDFs(pdfFiles.map(f => f.path), config);
 
             // 清理临时文件
-            fs.unlinkSync(files.pdf1.path);
-            fs.unlinkSync(files.pdf2.path);
+            pdfFiles.forEach(f => {
+                try { fs.unlinkSync(f.path); } catch (e) {}
+            });
 
             res.writeHead(200, {
                 'Content-Type': 'application/pdf',
                 'Content-Disposition': 'attachment; filename="merged.pdf"',
-                'Content-Length': mergedBytes.length
+                'Content-Length': mergedBytes.length,
+                'Access-Control-Allow-Origin': '*'
             });
             res.end(Buffer.from(mergedBytes));
 
@@ -213,5 +293,5 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 Local Dev Server (with full PDF support)`);
     console.log(`📍 URL: http://localhost:${PORT}`);
     console.log(`📁 Serving: ${DIST_DIR}`);
-    console.log(`✨ Features: PDF merge API enabled\n`);
+    console.log(`✨ Features: Multi-file PDF merge with custom layout\n`);
 });

@@ -29,7 +29,7 @@
     <section class="page-hero">
         <div class="container">
             <h1>PDF合并工具</h1>
-            <p>轻松合并两个PDF文件为一页</p>
+            <p>灵活合并多个PDF文件,支持自定义布局</p>
         </div>
     </section>
 
@@ -39,78 +39,130 @@
             <div class="tool-container">
                 <div class="tool-header">
                     <h2>上传PDF文件</h2>
-                    <p>选择两个PDF文件,我们将把它们合并成一页</p>
+                    <p>支持上传多个PDF文件,可拖拽调整顺序</p>
                 </div>
 
+                <!-- 上传区域 -->
                 <div class="upload-area" id="uploadArea">
-                    <div class="upload-boxes">
-                        <div class="upload-box" id="uploadBox1">
-                            <div class="upload-icon">&#128196;</div>
-                            <h3>PDF文件 1</h3>
-                            <p class="upload-hint">点击或拖拽上传</p>
-                            <input type="file" id="pdfFile1" accept=".pdf" hidden>
-                            <button class="btn btn-upload" onclick="document.getElementById('pdfFile1').click()">
-                                选择文件
-                            </button>
-                            <div class="file-info" id="fileInfo1" style="display: none;">
-                                <span class="file-name"></span>
-                                <button class="btn-remove" onclick="removeFile(1)">&times;</button>
-                            </div>
-                        </div>
-
-                        <div class="upload-plus">+</div>
-
-                        <div class="upload-box" id="uploadBox2">
-                            <div class="upload-icon">&#128196;</div>
-                            <h3>PDF文件 2</h3>
-                            <p class="upload-hint">点击或拖拽上传</p>
-                            <input type="file" id="pdfFile2" accept=".pdf" hidden>
-                            <button class="btn btn-upload" onclick="document.getElementById('pdfFile2').click()">
-                                选择文件
-                            </button>
-                            <div class="file-info" id="fileInfo2" style="display: none;">
-                                <span class="file-name"></span>
-                                <button class="btn-remove" onclick="removeFile(2)">&times;</button>
-                            </div>
-                        </div>
+                    <div class="upload-placeholder" id="uploadPlaceholder">
+                        <div class="upload-icon-large">&#128196;</div>
+                        <h3>点击或拖拽上传PDF文件</h3>
+                        <p class="upload-hint">支持多个文件,建议不超过20个</p>
+                        <input type="file" id="pdfFiles" accept=".pdf" multiple hidden>
+                        <button class="btn btn-primary btn-large" onclick="document.getElementById('pdfFiles').click()">
+                            选择文件
+                        </button>
                     </div>
+                    <div class="file-list" id="fileList"></div>
                 </div>
 
+                <!-- 配置选项 -->
                 <div class="tool-options">
-                    <h3>合并选项</h3>
-                    <div class="option-group">
-                        <label>
-                            <input type="radio" name="layout" value="vertical" checked>
-                            垂直堆叠 (上下)
-                        </label>
-                        <label>
-                            <input type="radio" name="layout" value="horizontal">
-                            水平并排 (左右)
-                        </label>
+                    <h3>合并配置</h3>
+                    
+                    <div class="option-row">
+                        <label class="option-label">每页合并数量:</label>
+                        <div class="option-controls">
+                            <select id="filesPerPage" class="form-select">
+                                <option value="1">1个文件/页</option>
+                                <option value="2" selected>2个文件/页</option>
+                                <option value="3">3个文件/页</option>
+                                <option value="4">4个文件/页</option>
+                                <option value="5">5个文件/页</option>
+                                <option value="6">6个文件/页</option>
+                                <option value="7">7个文件/页</option>
+                                <option value="8">8个文件/页</option>
+                                <option value="9">9个文件/页</option>
+                                <option value="10">10个文件/页</option>
+                            </select>
+                            <p class="option-help">将多个PDF页面合并到一页中</p>
+                        </div>
+                    </div>
+
+                    <div class="option-row">
+                        <label class="option-label">纸张大小:</label>
+                        <div class="option-controls">
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="pageSize" value="a4" checked>
+                                    <span>A4 (210×297mm)</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="pageSize" value="letter">
+                                    <span>Letter (216×279mm)</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="pageSize" value="auto">
+                                    <span>自动(根据内容)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="option-row">
+                        <label class="option-label">排列方式:</label>
+                        <div class="option-controls">
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="layout" value="grid" checked>
+                                    <span>网格布局</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="layout" value="horizontal">
+                                    <span>水平排列</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="layout" value="vertical">
+                                    <span>垂直排列</span>
+                                </label>
+                            </div>
+                            <p class="option-help">网格布局会自动计算最佳行列数</p>
+                        </div>
+                    </div>
+
+                    <div class="option-row">
+                        <label class="option-label">页面方向:</label>
+                        <div class="option-controls">
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="orientation" value="portrait" checked>
+                                    <span>纵向</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="orientation" value="landscape">
+                                    <span>横向</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
+                <!-- 操作按钮 -->
                 <div class="tool-actions">
                     <button class="btn btn-primary btn-large" id="mergeBtn" disabled onclick="mergePDFs()">
-                        合并PDF
+                        开始合并
                     </button>
-                    <p class="tool-tip">请先上传两个PDF文件</p>
+                    <p class="tool-tip" id="toolTip">请至少上传一个PDF文件</p>
                 </div>
 
+                <!-- 结果区域 -->
                 <div class="result-area" id="resultArea" style="display: none;">
                     <div class="result-success">
                         <div class="success-icon">&#10004;</div>
                         <h3>合并成功!</h3>
-                        <p>您的PDF文件已合并完成</p>
-                        <button class="btn btn-primary btn-large" onclick="downloadMergedPDF()">
-                            下载合并后的PDF
-                        </button>
-                        <button class="btn btn-secondary" onclick="resetTool()">
-                            重新合并
-                        </button>
+                        <p id="resultInfo">共X个文件合并为Y页</p>
+                        <div class="result-actions">
+                            <button class="btn btn-primary btn-large" onclick="downloadMergedPDF()">
+                                下载合并后的PDF
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetTool()">
+                                重新合并
+                            </button>
+                        </div>
                     </div>
                 </div>
 
+                <!-- 错误区域 -->
                 <div class="error-area" id="errorArea" style="display: none;">
                     <div class="error-message">
                         <div class="error-icon">&#9888;</div>
@@ -133,12 +185,12 @@
                 <div class="instruction-card">
                     <div class="instruction-number">1</div>
                     <h3>上传PDF</h3>
-                    <p>点击上传按钮或拖拽两个PDF文件到指定区域</p>
+                    <p>点击上传或拖拽多个PDF文件,可拖拽调整顺序</p>
                 </div>
                 <div class="instruction-card">
                     <div class="instruction-number">2</div>
-                    <h3>选择布局</h3>
-                    <p>选择水平并排或垂直堆叠的合并方式</p>
+                    <h3>配置选项</h3>
+                    <p>设置每页数量、纸张大小、排列方式等</p>
                 </div>
                 <div class="instruction-card">
                     <div class="instruction-number">3</div>
