@@ -81,15 +81,15 @@ app.post('/api/merge-pdf', async (c) => {
 			// 计算布局行列数
 			let cols: number, rows: number;
 			if (layout === 'horizontal') {
-				cols = pdfPages.length;
+				cols = filesPerPage;
 				rows = 1;
 			} else if (layout === 'vertical') {
 				cols = 1;
-				rows = pdfPages.length;
+				rows = filesPerPage;
 			} else {
 				// 网格布局
-				cols = Math.ceil(Math.sqrt(pdfPages.length));
-				rows = Math.ceil(pdfPages.length / cols);
+				cols = Math.ceil(Math.sqrt(filesPerPage));
+				rows = Math.ceil(filesPerPage / cols);
 			}
 
 			// 确定最终页面尺寸
@@ -136,9 +136,9 @@ app.post('/api/merge-pdf', async (c) => {
 				const scaledWidth = sourceWidth * scale;
 				const scaledHeight = sourceHeight * scale;
 
-				// 居中放置
+				// 从顶部开始放置
 				const x = col * cellWidth + (cellWidth - scaledWidth) / 2;
-				const y = finalPageHeight! - (row + 1) * cellHeight + (cellHeight - scaledHeight) / 2;
+				const y = finalPageHeight! - row * cellHeight - scaledHeight;
 
 				newPage.drawPage(embeddedPage, {
 					x,
@@ -170,7 +170,12 @@ app.post('/api/merge-pdf', async (c) => {
 // 【最后】其他所有路径返回前端页面
 // ==============================================
 app.get("*", (c) => {
-	return c.env.ASSETS.fetch(c.req.raw);
+	if (c.env.ASSETS) {
+		return c.env.ASSETS.fetch(c.req.raw);
+	} else {
+		// 在本地开发环境中返回404
+		return c.text('Not found', 404);
+	}
 });
 
 export default app;

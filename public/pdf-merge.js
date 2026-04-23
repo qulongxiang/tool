@@ -8,6 +8,12 @@ document.getElementById('pdfFiles').addEventListener('change', function(e) {
     handleFiles(Array.from(e.target.files));
 });
 
+// 添加更多文件处理
+document.getElementById('pdfFilesAdd').addEventListener('change', function(e) {
+    handleFiles(Array.from(e.target.files));
+    this.value = ''; // 重置输入框，允许重复选择相同文件
+});
+
 // 拖拽上传
 const uploadArea = document.getElementById('uploadArea');
 
@@ -60,14 +66,17 @@ function formatFileSize(bytes) {
 function renderFileList() {
     const fileList = document.getElementById('fileList');
     const placeholder = document.getElementById('uploadPlaceholder');
+    const addMoreFiles = document.getElementById('addMoreFiles');
     
     if (uploadedFiles.length === 0) {
         placeholder.style.display = 'block';
         fileList.innerHTML = '';
+        addMoreFiles.style.display = 'none';
         return;
     }
     
     placeholder.style.display = 'none';
+    addMoreFiles.style.display = 'block';
     
     fileList.innerHTML = uploadedFiles.map((item, index) => `
         <div class="file-item" draggable="true" data-index="${index}" ondragstart="handleDragStart(event)" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
@@ -190,7 +199,7 @@ async function mergePDFs() {
         document.getElementById('resultInfo').textContent = 
             `共 ${uploadedFiles.length} 个文件合并为 ${totalPages} 页`;
         document.getElementById('resultArea').style.display = 'block';
-        document.querySelector('.tool-container').scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('resultArea').scrollIntoView({ behavior: 'smooth', block: 'center' });
         
     } catch (error) {
         console.error('Merge error:', error);

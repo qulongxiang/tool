@@ -1574,3 +1574,22 @@ footer {
         width: 100%;
     }
 }
+
+/* ===================================
+   添加更多文件按钮
+   =================================== */
+.add-more-files {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.add-more-files .btn-secondary {
+    background-color: var(--primary-color);
+    color: white;
+    border: 2px solid var(--primary-color);
+}
+
+.add-more-files .btn-secondary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
