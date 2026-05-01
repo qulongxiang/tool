@@ -12,11 +12,14 @@
 		"publish": true
 	},
 	"dependencies": {
+		"@ant-design/icons": "^6.2.2",
+		"antd": "^6.3.7",
 		"formidable": "^3.5.4",
 		"hono": "4.11.1",
 		"pdf-lib": "^1.17.1",
 		"react": "19.2.1",
-		"react-dom": "19.2.1"
+		"react-dom": "19.2.1",
+		"react-router-dom": "^7.14.2"
 	},
 	"devDependencies": {
 		"@cloudflare/vite-plugin": "1.15.3",
