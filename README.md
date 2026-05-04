@@ -1,15 +1,73 @@
-# React + Vite + Hono + Cloudflare Workers
+
+# 项目框架（最终定论）
+## 🔥 整体定位
+**全栈 Web 项目（前后端一体）**
+基于 **React + Vite + Hono + Cloudflare Workers** 构建的现代化工具站
+
+---
+
+## 前端框架（src/react-app/）
+1. **核心框架**：**React 18**（UI 开发）
+2. **语言**：**TypeScript**（类型安全）
+3. **构建工具**：**Vite**（极速编译）
+4. **UI 组件库**：**Ant Design**（导航、按钮、布局等）
+5. **路由**：**React Router**（页面切换：首页/关于/PDF工具）
+
+---
+
+## 后端框架（src/worker/）
+1. **运行平台**：**Cloudflare Workers**（无服务器）
+2. **Web 框架**：**Hono**（轻量、快，类似 Express）
+3. **核心库**：**pdf-lib**（PDF 合并处理）
+
+---
+
+## 一句话概括（最好记）
+**Vite + React + TypeScript + Ant Design + Hono + Cloudflare Workers**
+✅ 前端：React 全家桶
+✅ 后端：Hono + 无服务器
+✅ 部署：Cloudflare 全球节点
+
+
 # 运行
 ```
 npm config set registry https://registry.npmmirror.com/
 npm install
-npm run preview
+npm run dev
 
-# 本地运行环境更接近
-lsof -ti:8787 | xargs kill -9
-node dev.cjs
-
+查看项目结构
+tree -I ".wrangler|node_modules"
 ```
+
+# 项目结构
+```
+.
+├── README.md               # 项目说明文档
+├── eslint.config.js        # 代码规范检查配置
+├── index.html              # 前端唯一入口HTML（Vite）
+├── package-lock.json       # 依赖版本锁定
+├── package.json            # 项目命令+依赖配置
+├── public                  # 公共静态资源
+│   └── vite.svg
+├── src                     # 核心源码（前后端都在这里）
+│   ├── react-app           # ✅ 前端：React 全量代码
+│   │   ├── App.css         # 组件样式
+│   │   ├── App.tsx         # 路由配置（首页/关于/PDF工具）
+│   │   ├── assets          # 项目图片/图标资源
+│   │   ├── components      # 公共组件（导航/页脚/布局）
+│   │   ├── index.css       # 全局样式
+│   │   ├── main.tsx        # 前端项目入口
+│   │   ├── pages           # 所有业务页面
+│   │   └── vite-env.d.ts   # Vite类型声明
+│   └── worker              # ✅ 后端：Cloudflare Workers
+│       └── index.ts        # Hono框架+PDF合并API接口
+├── style.css               # 全局样式文件
+├── tsconfig.*.json         # TypeScript 全套配置
+├── vite.config.ts          # Vite构建/代理配置
+├── worker-configuration.d.ts
+└── wrangler.json           # Cloudflare部署配置
+```
+
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/vite-react-template)
 
