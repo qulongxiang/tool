@@ -17,6 +17,7 @@ const navItems = [
   { key: "/about", label: "关于我们" },
   { key: "/contact", label: "联系我们" },
   { key: "/pdf-merge", label: "PDF工具" },
+  { key: "/test/qlx", label: "qlx" },
 ];
 
 // 导出 Header 组件
