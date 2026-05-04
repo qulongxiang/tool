@@ -14,24 +14,38 @@ const { Header: AntHeader } = Layout;
 // key = 路由地址 ｜ label = 菜单显示文字
 const navItems = [
   { key: "/", label: "首页" },
-  { key: "/about", label: "关于我们" },
+  {
+    key: "about",
+    label: "关于我们",
+    children: [
+      { key: "/about", label: "公司介绍" },
+      { key: "/about/team", label: "团队成员" },
+    ],
+  },
+  {
+    key: "test",
+    label: "测试中心",
+    children: [
+      { key: "/test/qlx", label: "qlx" },
+      {
+        key: "sub-test",
+        label: "子测试菜单",
+        children: [
+          { key: "/test/sub1", label: "子页面1" },
+          { key: "/test/sub2", label: "子页面2" },
+        ],
+      },
+    ],
+  },
   { key: "/contact", label: "联系我们" },
   { key: "/pdf-merge", label: "PDF工具" },
-  { key: "/test/qlx", label: "qlx" },
 ];
-
 // 导出 Header 组件
 export default function Header() {
   // 获取当前页面地址（比如 /about / 等）
   const location = useLocation();
   // 获取跳转函数（用来点击菜单跳页）
   const navigate = useNavigate();
-
-  // 🔥 自动匹配：当前地址对应的菜单 key
-  // 作用：让菜单自动高亮当前页面
-  const currentKey = navItems.find(
-    (item) => item.key === location.pathname
-  )?.key || "/";
 
   // 开始渲染导航栏
   return (
@@ -70,7 +84,7 @@ export default function Header() {
       <Menu
         theme="dark"         // 深色主题
         mode="horizontal"    // 横向菜单
-        selectedKeys={[currentKey]}  // 自动高亮当前页面
+        selectedKeys={[location.pathname]}  // 自动高亮当前页面
         items={navItems}     // 菜单数据（上面定义的数组）
         onClick={({ key }) => navigate(key)}  // 点击菜单跳转
         style={{ flex: 1, minWidth: 0, borderBottom: "none" }}
